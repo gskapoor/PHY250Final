@@ -6,8 +6,8 @@
 
 int main() {
     // Example matrices
-    std::vector<std::vector<int>> dataA = {{1, 2, 3}, {4, 5, 6}};
-    std::vector<std::vector<int>> dataB = {{7, 8}, {9, 10}, {11, 12}};
+    std::vector<std::vector<int>> dataA = {{1, 2}, {4, 5}};
+    std::vector<std::vector<int>> dataB = {{7, 8}, {9, 10}};
 
     Matrix matrixA(dataA.size(), dataA[0].size(), dataA);
     Matrix matrixB(dataB.size(), dataB[0].size(), dataB);
@@ -27,6 +27,8 @@ int main() {
     Matrix resultOpenCL = matrixA.multiplyOpenCL(matrixB);
     std::cout << "Result (OpenCL):" << std::endl;
     resultOpenCL.print();
+
+    std::cout << "got to here" << std::endl;
 
     return 0;
 }

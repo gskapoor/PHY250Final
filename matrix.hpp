@@ -1,5 +1,7 @@
 // Matrix.h
 
+#define CL_TARGET_OPENCL_VERSION 120
+
 #ifndef MATRIX_HPP
 #define MATRIX_HPP
 

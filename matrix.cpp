@@ -1,4 +1,3 @@
-// Matrix.cpp
 
 #include "matrix.hpp"
 
@@ -17,7 +16,7 @@ const char* kernelSource = R"(
             sum += A[globalRow * colsA + k] * B[k * colsB + globalCol];
         }
 
-        C[globalRow * colsB + globalCol] = sum;
+        C[globalRow * colsB + globalCol] = 20;
     }
 )";
 
@@ -37,10 +36,6 @@ Matrix::Matrix(int rows, int cols, const std::vector<std::vector<int>>& data) : 
 }
 
 Matrix::~Matrix() {
-    // Release OpenCL resources
-    clReleaseMemObject(bufferA);
-    clReleaseMemObject(bufferB);
-    clReleaseMemObject(bufferResult);
     clReleaseKernel(kernel);
     clReleaseProgram(program);
     clReleaseContext(context);
@@ -126,8 +121,8 @@ void Matrix::initializeOpenCL() {
       std::cerr << "ERROR GETTING PLATFORM ID" << std::endl;
     }
 
-    // Use the first platform (you may need to adjust this based on your requirements)
     platform = platforms[0];
+    std::cout << "platform: " << platform << std::endl;
 
     cl_uint numDevices;
     error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
@@ -147,31 +142,25 @@ void Matrix::initializeOpenCL() {
     }
 
 
-    // Use the first GPU device (you may need to adjust this based on your requirements)
     device = devices[0];
 
-    // Create OpenCL context and command queue
     context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, nullptr);
 
-    // Load OpenCL program source
     program = clCreateProgramWithSource(context, 1, &kernelSource, nullptr, nullptr);
     error = clBuildProgram(program, 1, &device, nullptr, nullptr, nullptr);
     if (error != CL_SUCCESS) {
       std::cerr << "ERROR Building program" << std::endl;
     }
 
-    // Create OpenCL kernel
     kernel = clCreateKernel(program, "matrixMul", nullptr);
 }
 
 Matrix Matrix::multiplyOpenCL(Matrix& other){
     if (context == nullptr || device == nullptr || program == nullptr || kernel == nullptr) {
-        // OpenCL initialization failed
         return Matrix();
     }
 
     if (cols != other.rows) {
-        // Matrix multiplication is not defined
         return Matrix();
     }
 
@@ -185,18 +174,15 @@ Matrix Matrix::multiplyOpenCL(Matrix& other){
         tempBufferB.insert(tempBufferB.end(), row.begin(), row.end());
     }
 
-    // Create OpenCL buffers for matrices
     bufferA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                              sizeof(int) * rows * cols, tempBufferA.data(), nullptr);
 
     bufferB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                              sizeof(int) * other.rows * other.cols, tempBufferB.data(), nullptr);
 
-    // Create OpenCL buffer for the result matrix
     bufferResult = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
                                   sizeof(int) * rows * other.cols, nullptr, nullptr);
 
-    // Set kernel arguments
     clSetKernelArg(kernel, 0, sizeof(cl_mem), &bufferA);
     clSetKernelArg(kernel, 1, sizeof(cl_mem), &bufferB);
     clSetKernelArg(kernel, 2, sizeof(cl_mem), &bufferResult);
@@ -204,25 +190,19 @@ Matrix Matrix::multiplyOpenCL(Matrix& other){
     clSetKernelArg(kernel, 4, sizeof(int), &cols);
     clSetKernelArg(kernel, 5, sizeof(int), &other.cols);
 
-    // Define global and local work sizes
     size_t globalWorkSize[2] = {static_cast<size_t>(rows), static_cast<size_t>(other.cols)};
     size_t localWorkSize[2] = {1, 1}; // Adjust as needed
 
-    // Enqueue the kernel for execution
-    clEnqueueNDRangeKernel(commandQueue, kernel, 2, nullptr, globalWorkSize, localWorkSize, 0, nullptr, nullptr);
+    clEnqueueNDRangeKernel(commandQueue, kernel, 2, nullptr, globalWorkSize, nullptr, 0, nullptr, nullptr);
     clFinish(commandQueue);
 
-    // Read the result buffer back to the host
     std::vector<int> resultData(rows * other.cols);
     clEnqueueReadBuffer(commandQueue, bufferResult, CL_TRUE, 0, sizeof(int) * rows * other.cols, resultData.data(), 0, nullptr, nullptr);
 
-    // Cleanup OpenCL resources
     clReleaseMemObject(bufferA);
     clReleaseMemObject(bufferB);
     clReleaseMemObject(bufferResult);
 
-    // Return the result matrix
-    
     std::cout << "IS THIS WORKING???" << std::endl;
     std::vector<std::vector<int>> resultMatrix(rows, std::vector<int>(other.cols));
     for (int i = 0; i < rows; ++i) {

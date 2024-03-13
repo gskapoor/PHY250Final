@@ -28,8 +28,6 @@ int main() {
     std::cout << "Result (OpenCL):" << std::endl;
     resultOpenCL.print();
 
-    std::cout << "got to here" << std::endl;
-
     return 0;
 }
 

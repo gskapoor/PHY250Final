@@ -16,7 +16,7 @@ const char* kernelSource = R"(
             sum += A[globalRow * colsA + k] * B[k * colsB + globalCol];
         }
 
-        C[globalRow * colsB + globalCol] = 20;
+        C[globalRow * colsB + globalCol] = sum;
     }
 )";
 
@@ -122,7 +122,6 @@ void Matrix::initializeOpenCL() {
     }
 
     platform = platforms[0];
-    std::cout << "platform: " << platform << std::endl;
 
     cl_uint numDevices;
     error = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
@@ -146,6 +145,9 @@ void Matrix::initializeOpenCL() {
 
     context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, nullptr);
 
+    commandQueue = clCreateCommandQueue(context, device, 0, NULL);
+
+
     program = clCreateProgramWithSource(context, 1, &kernelSource, nullptr, nullptr);
     error = clBuildProgram(program, 1, &device, nullptr, nullptr, nullptr);
     if (error != CL_SUCCESS) {
@@ -153,6 +155,8 @@ void Matrix::initializeOpenCL() {
     }
 
     kernel = clCreateKernel(program, "matrixMul", nullptr);
+
+
 }
 
 Matrix Matrix::multiplyOpenCL(Matrix& other){
@@ -203,12 +207,10 @@ Matrix Matrix::multiplyOpenCL(Matrix& other){
     clReleaseMemObject(bufferB);
     clReleaseMemObject(bufferResult);
 
-    std::cout << "IS THIS WORKING???" << std::endl;
     std::vector<std::vector<int>> resultMatrix(rows, std::vector<int>(other.cols));
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < other.cols; ++j) {
             resultMatrix[i][j] = resultData[i * other.cols + j];
-            std::cout << resultData[i * other.cols + j] << std::endl;
         }
     }
 
